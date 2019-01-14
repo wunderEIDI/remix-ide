@@ -87,7 +87,7 @@ module.exports = (pluginManager, fileProviders, fileManager, compiler, udapp) =>
         })
       },
       createVMAccount: (mod, privateKey, balance, cb) => {
-        if (executionContext.getProvider() !== 'vm') return cb('plugin API does not allow creating a new account through web3 connection. Only vm mode is allowed')
+        if (!executionContext.isVM()) return cb('plugin API does not allow creating a new account through web3 connection. Only vm mode is allowed')
         udapp.createVMAccount(privateKey, balance, (error, address) => {
           cb(error, address)
         })

@@ -205,7 +205,7 @@ class TxLogger {
 
 function debug (e, data, self) {
   e.stopPropagation()
-  if (data.tx.isCall && data.tx.envMode !== 'vm') {
+  if (data.tx.isCall && data.tx.envMode.indexOf('vm') !== 0) {
     modalDialog.alert('Cannot debug this call. Debugging calls is only possible in JavaScript VM mode.')
   } else {
     self._deps.app.startdebugging(data.tx.hash)
@@ -328,7 +328,7 @@ function context (self, opts) {
   var block = data.tx.blockNumber || ''
   var i = data.tx.transactionIndex
   var value = val ? typeConversion.toInt(val) : 0
-  if (executionContext.getProvider() === 'vm') {
+  if (executionContext.isVM()) {
     return yo`
       <div>
         <span class=${css.txLog}>
@@ -341,7 +341,7 @@ function context (self, opts) {
           <div class=${css.txItem}><span class=${css.txItemTitle}>hash:</span> ${hash}</div>
         </span>
       </div>`
-  } else if (executionContext.getProvider() !== 'vm' && data.resolvedData) {
+  } else if (!executionContext.isVM() && data.resolvedData) {
     return yo`
       <div>
         <span class=${css.txLog}>

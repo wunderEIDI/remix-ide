@@ -557,9 +557,13 @@ function settings (container, self) {
       <div class=${css.environment}>
         ${net}
         <select id="selectExEnvOptions" onchange=${() => { updateNetwork() }} class="${css.select}">
-          <option id="vm-mode"
+          <option id="vm-mode-constantinople"
             title="Execution environment does not connect to any node, everything is local and in memory only."
-            value="vm" checked name="executionContext"> JavaScript VM
+            value="vm-constantinope" checked name="executionContext"> JavaScript VM (Constantinople)
+          </option>
+          <option id="vm-mode-byzantium"
+            title="Execution environment does not connect to any node, everything is local and in memory only."
+            value="vm-byzantium" name="executionContext"> JavaScript VM (Byzantium)
           </option>
           <option id="injected-mode"
             title="Execution environment has been provided by Metamask or similar provider."

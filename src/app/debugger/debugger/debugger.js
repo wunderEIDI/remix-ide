@@ -51,9 +51,7 @@ function Debugger (options) {
     self.step_manager.jumpTo(step)
   })
 
-  this.debugger.addProvider('vm', this.executionContext.vm())
-  this.debugger.addProvider('injected', this.executionContext.internalWeb3())
-  this.debugger.addProvider('web3', this.executionContext.internalWeb3())
+  this.debugger.addProvider(this.executionContext.getProvider(), this.executionContext.internalWeb3())
   this.debugger.switchProvider(this.executionContext.getProvider())
 }
 
