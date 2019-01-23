@@ -1,14 +1,13 @@
-var csjs = require('csjs-inject')
-var styleGuide = require('../../ui/styles-guide/theme-chooser')
-var styles = styleGuide.chooser()
+const csjs = require('csjs-inject')
+const styleGuide = require('../../ui/styles-guide/theme-chooser')
+const styles = styleGuide.chooser()
 
-var css = csjs`
+const css = csjs`
   .settingsTabView {
     padding: 2%;
-    display: flex;
   }
   .info {
-    ${styles.rightPanel.settingsTab.box_SolidityVersionInfo}
+    ${styles.rightPanel.settingsTab.box_SolidityVersionInfo};
     margin-bottom: 1em;
     word-break: break-word;
   }
@@ -38,11 +37,6 @@ var css = csjs`
     padding: .5em;
     font-weight: bold;
   }
-  .select {
-    font-weight: bold;
-    margin-top: 1em;
-    ${styles.rightPanel.settingsTab.dropdown_SelectCompiler}
-  }
   .heading {
     margin-bottom: 0;
   }
@@ -53,6 +47,7 @@ var css = csjs`
   input {
     margin-right: 5px;
     cursor: pointer;
+    width: inherit;
   }
   input[type=radio] {
     margin-top: 2px;
@@ -62,6 +57,21 @@ var css = csjs`
   }
   .pluginLoad {
     vertical-align: top;
+    ${styles.rightPanel.settingsTab.button_LoadPlugin};
+    width: inherit;
+    display: inline-block;
+  }
+  .initPlugin {
+    vertical-align: top;
+    ${styles.rightPanel.settingsTab.button_initPlugin};
+    width: inherit;
+    display: block;
+    max-height: inherit;
+    padding:7px;
+  }
+
+  .removePlugin {
+    cursor: pointer;
   }
   i.warnIt {
     color: ${styles.appProperties.warningText_Color};
@@ -69,15 +79,32 @@ var css = csjs`
   .icon {
     margin-right: .5em;
   }
-  .remixdinstallation {
-    padding: 3px;
-    border-radius: 2px;
-    margin-left: 5px;
-  }
   .savegisttoken {
     margin-left: 5px;
   }
-}
+  .aPlugin {
+    display: inline-block;
+    padding-left: 10px;
+    padding-top: 4px;
+    padding-bottom: 6px;
+    max-width: 100px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .pluginLoad {
+    vertical-align: top;
+    max-height: inherit;
+    margin: 2px;
+
+  }
+  .removePlugin{
+    padding-left: 7px;
+    padding-right: 7px;
+    border-left: 2px solid ${styles.appProperties.primary_BackgroundColor};
+    margin-left: 10px;
+  }
 `
 
 module.exports = css
