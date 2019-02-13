@@ -6,15 +6,20 @@ const EventEmmitter = require('events')
 // Component
 class VerticalIconComponent {
 
-  constructor (appStore) {
+  constructor (name, appStore) {
     this.store = appStore
     this.event = new EventEmmitter()
     this.icons = {}
     this.iconKind = {}
+    this.name = name
 
     this.store.event.on('activate', (name) => {
-      const item = this.store.get(name)
-      if (item && item.profile.icon && name !== 'code editor') this.addIcon(item.profile)
+      const { profile } = this.store.get(name)
+      // TODO should check for preferredLocation instead of the 'icon' property
+      if (!profile.icon) return
+      if (profile.prefferedLocation === this.name || !profile.prefferedLocation) {
+        this.addIcon(profile)
+      }
     })
     this.store.event.on('deactivate', (name) => {
       const item = this.store.get(name)
