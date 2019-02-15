@@ -1,7 +1,6 @@
 var yo = require('yo-yo')
 var remixLib = require('remix-lib')
 
-var globalRegistry = require('../../global/registry')
 var tooltip = require('../ui/tooltip')
 var copyToClipboard = require('../ui/copy-to-clipboard')
 var styleGuide = require('../ui/styles-guide/theme-chooser')
@@ -11,17 +10,11 @@ var EventManager = require('../../lib/events')
 var css = require('./styles/settings-tab-styles')
 
 class SettingsTab {
-  constructor (localRegistry) {
-    const self = this
-    self._components = {}
-    self._components.registry = localRegistry || globalRegistry
-    // dependencies
-    self._deps = {
-      config: self._components.registry.get('config').api,
-      editorPanel: self._components.registry.get('editorpanel').api,
-      editor: self._components.registry.get('editor').api
-    }
-    self._view = { /* eslint-disable */
+
+  constructor (config, editor) {
+    this.config = config
+    this.editor = editor
+    this._view = { /* eslint-disable */
       el: null,
       optionVM: null, personal: null, warnPersonalMode: null, generateContractMetadata: null,
       pluginInput: null, versionSelector: null, version: null,
@@ -32,11 +25,11 @@ class SettingsTab {
         plugin: null
       }
     } /* eslint-enable */
-    self.data = {}
-    self.event = new EventManager()
-    self._components.themeStorage = new Storage('style:')
-    self.data.currentTheme = self._components.themeStorage.get('theme') || 'light'
+    this.event = new EventManager()
+    const themeStorage = new Storage('style:')
+    this.currentTheme = themeStorage.get('theme') || 'light'
   }
+
   profile () {
     return {
       name: 'settings',
@@ -47,36 +40,60 @@ class SettingsTab {
       kind: 'settings'
     }
   }
+
+  toggleGenerateContractMetadata () {
+    this.config.set('settings/generate-contract-metadata', !this.config.get('settings/generate-contract-metadata'))
+  }
+
+  toggleAlwaysUseVM () {
+    this.config.set('settings/always-use-vm', !this.config.get('settings/always-use-vm'))
+  }
+
+  switchTheme (themeName) {
+    styleGuide.switchTheme(themeName)
+    window.location.reload()
+  }
+
+  togglePersonal () {
+    this.config.set('settings/personal-mode', !this.config.get('settings/personal-mode'))
+  }
+
   render () {
     const self = this
     if (self._view.el) return self._view.el
 
     // Gist settings
     var gistAccessToken = yo`<input id="gistaccesstoken" type="password">`
-    var token = self._deps.config.get('settings/gist-access-token')
+
+    // TODO: not view related...
+    var token = self.config.get('settings/gist-access-token')
     if (token) gistAccessToken.value = token
-    var gistAddToken = yo`<input class="${css.savegisttoken}" id="savegisttoken" onclick=${() => { self._deps.config.set('settings/gist-access-token', gistAccessToken.value); tooltip('Access token saved') }} value="Save" type="button">`
-    var gistRemoveToken = yo`<input id="removegisttoken" onclick=${() => { gistAccessToken.value = ''; self._deps.config.set('settings/gist-access-token', ''); tooltip('Access token removed') }} value="Remove" type="button">`
-    self._view.gistToken = yo`<div class="${css.checkboxText}">${gistAccessToken}${copyToClipboard(() => self._deps.config.get('settings/gist-access-token'))}${gistAddToken}${gistRemoveToken}</div>`
-    //
-    self._view.optionVM = yo`<input onchange=${onchangeOption} id="alwaysUseVM" type="checkbox">`
-    if (self._deps.config.get('settings/always-use-vm')) self._view.optionVM.setAttribute('checked', '')
-    self._view.personal = yo`<input onchange=${onchangePersonal} id="personal" type="checkbox">`
-    if (self._deps.config.get('settings/personal-mode')) self._view.personal.setAttribute('checked', '')
+
+    var gistAddToken = yo`<input class="${css.savegisttoken}" id="savegisttoken" onclick=${() => { self.config.set('settings/gist-access-token', gistAccessToken.value); tooltip('Access token saved') }} value="Save" type="button">`
+    var gistRemoveToken = yo`<input id="removegisttoken" onclick=${() => { gistAccessToken.value = ''; self.config.set('settings/gist-access-token', ''); tooltip('Access token removed') }} value="Remove" type="button">`
+    self._view.gistToken = yo`<div class="${css.checkboxText}">${gistAccessToken}${copyToClipboard(() => self.config.get('settings/gist-access-token'))}${gistAddToken}${gistRemoveToken}</div>`
+
+    self._view.optionVM = yo`<input onchange=${this.toggleAlwaysUseVM.bind(this)} id="alwaysUseVM" type="checkbox">`
+    if (self.config.get('settings/always-use-vm')) self._view.optionVM.setAttribute('checked', '')
+
+    self._view.personal = yo`<input onchange=${this.togglePersonal.bind(this)} id="personal" type="checkbox">`
+    if (self.config.get('settings/personal-mode')) self._view.personal.setAttribute('checked', '')
+
     var warnText = `Transaction sent over Web3 will use the web3.personal API - be sure the endpoint is opened before enabling it.
     This mode allows to provide the passphrase in the Remix interface without having to unlock the account.
     Although this is very convenient, you should completely trust the backend you are connected to (Geth, Parity, ...).
     It is not recommended (and also most likely not relevant) to use this mode with an injected provider (Mist, Metamask, ...) or with JavaScript VM.
     Remix never persist any passphrase.`.split('\n').map(s => s.trim()).join(' ')
     self._view.warnPersonalMode = yo`<i title=${warnText} class="${css.icon} fa fa-exclamation-triangle" aria-hidden="true"></i>`
-    self._view.generateContractMetadata = yo`<input onchange=${onchangeGenerateContractMetadata} id="generatecontractmetadata" type="checkbox">`
-    if (self._deps.config.get('settings/generate-contract-metadata')) self._view.generateContractMetadata.setAttribute('checked', '')
+    self._view.generateContractMetadata = yo`<input onchange=${this.toggleGenerateContractMetadata.bind(this)} id="generatecontractmetadata" type="checkbox">`
+
+    if (self.config.get('settings/generate-contract-metadata')) self._view.generateContractMetadata.setAttribute('checked', '')
     self._view.pluginInput = yo`<textarea rows="4" cols="70" id="plugininput" type="text" class="${css.pluginTextArea}" ></textarea>`
 
-    self._view.theme.light = yo`<input onchange=${onswitch2lightTheme} class="${css.col1}" name="theme" id="themeLight" type="radio">`
-    self._view.theme.dark = yo`<input onchange=${onswitch2darkTheme} class="${css.col1}" name="theme" id="themeDark" type="radio">`
-    self._view.theme.clean = yo`<input onchange=${onswitch2cleanTheme} class="${css.col1}" name="theme" id="themeClean" type="radio">`
-    self._view.theme[self.data.currentTheme].setAttribute('checked', 'checked')
+    self._view.theme.light = yo`<input onchange=${() => { this.switchTheme('light') }} class="${css.col1}" name="theme" id="themeLight" type="radio">`
+    self._view.theme.dark = yo`<input onchange=${() => { this.switchTheme('dark') }} class="${css.col1}" name="theme" id="themeDark" type="radio">`
+    self._view.theme.clean = yo`<input onchange=${() => { this.switchTheme('clean') }} class="${css.col1}" name="theme" id="themeClean" type="radio">`
+    self._view.theme[self.currentTheme].setAttribute('checked', 'checked')
 
     self._view.config.general = yo`
       <div class="${css.info}">
@@ -90,7 +107,7 @@ class SettingsTab {
             <span class="${css.checkboxText}">Always use Ethereum VM at Load</span>
           </div>
           <div class="${css.crow}">
-            <div><input id="editorWrap" type="checkbox" onchange=${function () { self._deps.editor.resize(this.checked) }}></div>
+            <div><input id="editorWrap" type="checkbox" onchange=${function () { self.editor.resize(this.checked) }}></div>
             <span class="${css.checkboxText}">Text Wrap</span>
           </div>
           <div class="${css.crow}">
@@ -134,29 +151,9 @@ class SettingsTab {
         ${self._view.config.themes}
       </div>`
 
-    function onchangeGenerateContractMetadata (event) {
-      self._deps.config.set('settings/generate-contract-metadata', !self._deps.config.get('settings/generate-contract-metadata'))
-    }
-    function onchangeOption (event) {
-      self._deps.config.set('settings/always-use-vm', !self._deps.config.get('settings/always-use-vm'))
-    }
-    function onswitch2darkTheme (event) {
-      styleGuide.switchTheme('dark')
-      window.location.reload()
-    }
-    function onswitch2lightTheme (event) {
-      styleGuide.switchTheme('light')
-      window.location.reload()
-    }
-    function onswitch2cleanTheme (event) {
-      styleGuide.switchTheme('clean')
-      window.location.reload()
-    }
-    function onchangePersonal (event) {
-      self._deps.config.set('settings/personal-mode', !self._deps.config.get('settings/personal-mode'))
-    }
     return self._view.el
   }
+
 }
 
 module.exports = SettingsTab
