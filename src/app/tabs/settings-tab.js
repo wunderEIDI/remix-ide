@@ -14,18 +14,11 @@ class SettingsTab {
   constructor (config, editor) {
     this.config = config
     this.editor = editor
-    this._view = { /* eslint-disable */
-      el: null,
-      optionVM: null, personal: null, warnPersonalMode: null, generateContractMetadata: null,
-      pluginInput: null, versionSelector: null, version: null,
-      theme: { dark: null, light: null, clean: null },
-      plugins: {},
-      config: {
-        general: null, themes: null,
-        plugin: null
-      }
-    } /* eslint-enable */
     this.event = new EventManager()
+    this.initTheme()
+  }
+
+  initTheme () {
     const themeStorage = new Storage('style:')
     this.currentTheme = themeStorage.get('theme') || 'light'
   }
@@ -58,73 +51,14 @@ class SettingsTab {
     this.config.set('settings/personal-mode', !this.config.get('settings/personal-mode'))
   }
 
-  render () {
-    const self = this
-    if (self._view.el) return self._view.el
+  themeSwitcherUI () {
+    const themes = {}
+    themes.light = yo`<input onchange=${() => { this.switchTheme('light') }} class="${css.col1}" name="theme" id="themeLight" type="radio">`
+    themes.dark = yo`<input onchange=${() => { this.switchTheme('dark') }} class="${css.col1}" name="theme" id="themeDark" type="radio">`
+    themes.clean = yo`<input onchange=${() => { this.switchTheme('clean') }} class="${css.col1}" name="theme" id="themeClean" type="radio">`
+    themes[this.currentTheme].setAttribute('checked', 'checked')
 
-    // Gist settings
-    var gistAccessToken = yo`<input id="gistaccesstoken" type="password">`
-
-    // TODO: not view related...
-    var token = self.config.get('settings/gist-access-token')
-    if (token) gistAccessToken.value = token
-
-    var gistAddToken = yo`<input class="${css.savegisttoken}" id="savegisttoken" onclick=${() => { self.config.set('settings/gist-access-token', gistAccessToken.value); tooltip('Access token saved') }} value="Save" type="button">`
-    var gistRemoveToken = yo`<input id="removegisttoken" onclick=${() => { gistAccessToken.value = ''; self.config.set('settings/gist-access-token', ''); tooltip('Access token removed') }} value="Remove" type="button">`
-    self._view.gistToken = yo`<div class="${css.checkboxText}">${gistAccessToken}${copyToClipboard(() => self.config.get('settings/gist-access-token'))}${gistAddToken}${gistRemoveToken}</div>`
-
-    self._view.optionVM = yo`<input onchange=${this.toggleAlwaysUseVM.bind(this)} id="alwaysUseVM" type="checkbox">`
-    if (self.config.get('settings/always-use-vm')) self._view.optionVM.setAttribute('checked', '')
-
-    self._view.personal = yo`<input onchange=${this.togglePersonal.bind(this)} id="personal" type="checkbox">`
-    if (self.config.get('settings/personal-mode')) self._view.personal.setAttribute('checked', '')
-
-    var warnText = `Transaction sent over Web3 will use the web3.personal API - be sure the endpoint is opened before enabling it.
-    This mode allows to provide the passphrase in the Remix interface without having to unlock the account.
-    Although this is very convenient, you should completely trust the backend you are connected to (Geth, Parity, ...).
-    It is not recommended (and also most likely not relevant) to use this mode with an injected provider (Mist, Metamask, ...) or with JavaScript VM.
-    Remix never persist any passphrase.`.split('\n').map(s => s.trim()).join(' ')
-    self._view.warnPersonalMode = yo`<i title=${warnText} class="${css.icon} fa fa-exclamation-triangle" aria-hidden="true"></i>`
-    self._view.generateContractMetadata = yo`<input onchange=${this.toggleGenerateContractMetadata.bind(this)} id="generatecontractmetadata" type="checkbox">`
-
-    if (self.config.get('settings/generate-contract-metadata')) self._view.generateContractMetadata.setAttribute('checked', '')
-    self._view.pluginInput = yo`<textarea rows="4" cols="70" id="plugininput" type="text" class="${css.pluginTextArea}" ></textarea>`
-
-    self._view.theme.light = yo`<input onchange=${() => { this.switchTheme('light') }} class="${css.col1}" name="theme" id="themeLight" type="radio">`
-    self._view.theme.dark = yo`<input onchange=${() => { this.switchTheme('dark') }} class="${css.col1}" name="theme" id="themeDark" type="radio">`
-    self._view.theme.clean = yo`<input onchange=${() => { this.switchTheme('clean') }} class="${css.col1}" name="theme" id="themeClean" type="radio">`
-    self._view.theme[self.currentTheme].setAttribute('checked', 'checked')
-
-    self._view.config.general = yo`
-      <div class="${css.info}">
-          <div class=${css.title}>General settings</div>
-          <div class="${css.crow}">
-            <div>${self._view.generateContractMetadata}</div>
-            <span class="${css.checkboxText}">Generate contract metadata. Generate a JSON file in the contract folder. Allows to specify library addresses the contract depends on. If nothing is specified, Remix deploys libraries automatically.</span>
-          </div>
-          <div class="${css.crow}">
-            <div>${self._view.optionVM}</div>
-            <span class="${css.checkboxText}">Always use Ethereum VM at Load</span>
-          </div>
-          <div class="${css.crow}">
-            <div><input id="editorWrap" type="checkbox" onchange=${function () { self.editor.resize(this.checked) }}></div>
-            <span class="${css.checkboxText}">Text Wrap</span>
-          </div>
-          <div class="${css.crow}">
-            <div>${self._view.personal}></div>
-            <span class="${css.checkboxText}">Enable Personal Mode ${self._view.warnPersonalMode}></span>
-          </div>
-      </div>
-      `
-    self._view.gistToken = yo`
-      <div class="${css.info}">
-        <div class=${css.title}>Gist Access Token</div>
-        <div class="${css.crowNoFlex}">Manage the access token used to publish to Gist and retrieve Github contents.</div>
-        <div class="${css.crowNoFlex}">Go to github token page (link below) to create a new token and save it in Remix. Make sure this token has only 'create gist' permission.</div>
-        <div class="${css.crowNoFlex}"><a target="_blank" href="https://github.com/settings/tokens">https://github.com/settings/tokens</a></div>
-        <div class="${css.crowNoFlex}">${self._view.gistToken}</div>
-      </div>`
-    self._view.config.themes = yo`
+    const themeSwitcher = yo`
       <div class="${css.info}">
         <div class=${css.title}>Themes</div>
         <div class=${css.attention}>
@@ -132,26 +66,98 @@ class SettingsTab {
           <span>Selecting a theme will trigger a page reload</span>
         </div>
         <div class="${css.crow}">
-          ${self._view.theme.light}
+          ${themes.light}
           <label for="themeLight">Light Theme</label>
         </div>
         <div class="${css.crow}">
-          ${self._view.theme.dark}
+          ${themes.dark}
           <label for="themeDark">Dark Theme</label>
         </div>
         <div class="${css.crow}">
-          ${self._view.theme.clean}
+          ${themes.clean}
           <label for="themeClean">Clean Theme</label>
         </div>
       </div>`
-    self._view.el = yo`
-      <div class="${css.settingsTabView}" id="settingsView">
-        ${self._view.config.general}
-        ${self._view.gistToken}
-        ${self._view.config.themes}
+
+    return themeSwitcher
+  }
+
+  gistTokenUI () {
+    const gistAccessToken = yo`<input id="gistaccesstoken" type="password">`
+
+    const token = this.config.get('settings/gist-access-token')
+    if (token) gistAccessToken.value = token
+
+    const gistAddToken = yo`<input class="${css.savegisttoken}" id="savegisttoken" onclick=${() => { this.config.set('settings/gist-access-token', gistAccessToken.value); tooltip('Access token saved') }} value="Save" type="button">`
+    const gistRemoveToken = yo`<input id="removegisttoken" onclick=${() => { gistAccessToken.value = ''; this.config.set('settings/gist-access-token', ''); tooltip('Access token removed') }} value="Remove" type="button">`
+    const gistToken = yo`<div class="${css.checkboxText}">${gistAccessToken}${copyToClipboard(() => this.config.get('settings/gist-access-token'))}${gistAddToken}${gistRemoveToken}</div>`
+
+    const gistTokenEl = yo`
+      <div class="${css.info}">
+        <div class=${css.title}>Gist Access Token</div>
+        <div class="${css.crowNoFlex}">Manage the access token used to publish to Gist and retrieve Github contents.</div>
+        <div class="${css.crowNoFlex}">Go to github token page (link below) to create a new token and save it in Remix. Make sure this token has only 'create gist' permission.</div>
+        <div class="${css.crowNoFlex}"><a target="_blank" href="https://github.com/settings/tokens">https://github.com/settings/tokens</a></div>
+        <div class="${css.crowNoFlex}">${gistToken}</div>
       </div>`
 
-    return self._view.el
+    return gistTokenEl
+  }
+
+  generalSettingsUI () {
+    const optionVM = yo`<input onchange=${this.toggleAlwaysUseVM.bind(this)} id="alwaysUseVM" type="checkbox">`
+    if (this.config.get('settings/always-use-vm')) optionVM.setAttribute('checked', '')
+
+    const personal = yo`<input onchange=${this.togglePersonal.bind(this)} id="personal" type="checkbox">`
+    if (this.config.get('settings/personal-mode')) personal.setAttribute('checked', '')
+
+    const warnText = `Transaction sent over Web3 will use the web3.personal API - be sure the endpoint is opened before enabling it.
+    This mode allows to provide the passphrase in the Remix interface without having to unlock the account.
+    Although this is very convenient, you should completely trust the backend you are connected to (Geth, Parity, ...).
+    It is not recommended (and also most likely not relevant) to use this mode with an injected provider (Mist, Metamask, ...) or with JavaScript VM.
+    Remix never persist any passphrase.`.split('\n').map(s => s.trim()).join(' ')
+
+    const warnPersonalMode = yo`<i title=${warnText} class="${css.icon} fa fa-exclamation-triangle" aria-hidden="true"></i>`
+    const generateContractMetadata = yo`<input onchange=${this.toggleGenerateContractMetadata.bind(this)} id="generatecontractmetadata" type="checkbox">`
+
+    if (this.config.get('settings/generate-contract-metadata')) generateContractMetadata.setAttribute('checked', '')
+
+    const general = yo`
+      <div class="${css.info}">
+          <div class=${css.title}>General settings</div>
+          <div class="${css.crow}">
+            <div>${generateContractMetadata}</div>
+            <span class="${css.checkboxText}">Generate contract metadata. Generate a JSON file in the contract folder. Allows to specify library addresses the contract depends on. If nothing is specified, Remix deploys libraries automatically.</span>
+          </div>
+          <div class="${css.crow}">
+            <div>${optionVM}</div>
+            <span class="${css.checkboxText}">Always use Ethereum VM at Load</span>
+          </div>
+          <div class="${css.crow}">
+            <div><input id="editorWrap" type="checkbox" onchange=${function () { this.editor.resize(this.checked) }}></div>
+            <span class="${css.checkboxText}">Text Wrap</span>
+          </div>
+          <div class="${css.crow}">
+            <div>${personal}></div>
+            <span class="${css.checkboxText}">Enable Personal Mode ${warnPersonalMode}></span>
+          </div>
+      </div>
+      `
+
+    return general
+  }
+
+  render () {
+    if (this.view) return this.view
+
+    this.view = yo`
+      <div class="${css.settingsTabView}" id="settingsView">
+        ${this.generalSettingsUI()}
+        ${this.gistTokenUI()}
+        ${this.themeSwitcherUI()}
+      </div>`
+
+    return this.view
   }
 
 }
