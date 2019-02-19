@@ -9,6 +9,7 @@ class AnalysisTab {
     this.event = new EventManager()
     this.registry = registry
   }
+
   profile () {
     return {
       name: 'solidity static analysis',
@@ -19,6 +20,7 @@ class AnalysisTab {
       kind: 'analysis'
     }
   }
+
   render () {
     var staticanalysis = new StaticAnalysis()
     this.registry.put({api: staticanalysis, name: 'staticanalysis'})
@@ -27,6 +29,7 @@ class AnalysisTab {
     this.el = yo`<div class="${css.analysisTabView} "id="staticanalysisView">${staticanalysis.render()}</div>`
     return this.el
   }
+
 }
 
 module.exports = AnalysisTab
